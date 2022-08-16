@@ -5,8 +5,11 @@ import chalkAnimation from "chalk-animation";
 import figlet from "figlet";
 import { createSpinner } from "nanospinner";
 
+let restartProcessVar;
 const Answer = 24;
 let playerName = "";
+let playerScore = 0;
+let Article = 1;
 const sleep = (ms = 2000) => new Promise((r) => setTimeout(r, ms));
 
 function getRandomInt(min, max) {
@@ -16,9 +19,29 @@ function getRandomInt(min, max) {
 };
 
 async function GenNumber() {
-    let List = new Set([getRandomInt(1, 9), getRandomInt(1, 9), getRandomInt(1, 9), getRandomInt(1, 9)]);
-    return List;
+    return `[${getRandomInt(1, 9)}, ${getRandomInt(1, 9)}, ${getRandomInt(1, 9)}, ${getRandomInt(1, 9)}]`;
 };
+
+async function restartProcess() {
+  restartProcessVar = true;
+  playerName;
+  playerScore = 0;
+
+  const answers = await inquirer.prompt({
+    name: "response",
+    type: "confirm",
+    message: `ต้องการเริ่มใหม่ใช่หรือไม่?`
+  });
+
+  if (!answers.response) { console.log("ไม่ละ จงอยู่กับ Loop นรกนี้ไปซะ!") };
+  const spinner = createSpinner('กำลังเริ่มต้นเกมใหม่ อีกครั้ง...').start();
+  await sleep();
+  spinner.success({ text: "เสร็จสิ้น" });
+  restartProcessVar = false;
+  await sleep();
+  console.clear();
+  startGame();
+}
 
 async function welcome() {
     const rainbowTitle = chalkAnimation.rainbow("ยินดีตอนรับเข้าสู่เกมส์ 24");
@@ -63,16 +86,45 @@ async function winner() {
 };
 
 async function makeQuestion() {
-    
-}
+  const spinner = createSpinner('กำลังสร้างโจทย์...').start();
+  await sleep(1000);
+  spinner.success({ text: `เสร็จสิ้น!` });
+  const genNumber = await GenNumber();
+  const answers = await inquirer.prompt({
+    name: "response",
+    type: "input",
+    message: `ข้อที่ ${Article}). โจทย์คือ ${genNumber.toString()}
+    คำตอบ :`
+  });
 
-async function handleAnswer(isCorrect) {
+  try {
+    return await handleAnswer(eval(answers.response.replace(/[^-()\d/*+.]/g, '')) == Answer, answers.response, genNumber);
+  } catch (Err) {
+    console.log(`Error : ${Err}`);
+  };
+};
+
+async function checkUsingString(Using, Allowed) {
+  let check;
+  let usingList = Using.match(/\d+/g);
+  let allowedList = Allowed.match(/\d+/g);
+  await allowedList.forEach((Value) => {
+    if (!usingList.includes(Value)) { check = true };
+  });
+  await usingList.forEach((Value) => {
+    if (!allowedList.includes(Value)) { check = true };
+  });
+
+  return !check;
+}
+async function handleAnswer(isCorrect, usingNumber, genNumber) {
     const spinner = createSpinner('กำลังตรวจสอบคำตอบ...').start();
     await sleep();
-  
-    if (isCorrect) {
-      spinner.success({ text: `เป็นคำตอบที่ถูกต้องแล้วครับ!` });
-      playerScore = playerScore + countAddPoint;
+    let Returning;
+    if (isCorrect && await checkUsingString(usingNumber, genNumber)) {
+      playerScore = playerScore + 1;
+      Article = Article + 1;
+      spinner.success({ text: `เป็นคำตอบที่ถูกต้องแล้วครับ!, ตอนนี้คะแนนของคูณคือ ${playerScore}` });
       await inquirer.prompt({
         name: "response",
         message: `คุณ ${playerName} คุณต้องการไปต่อใช่หรือไม่`,
@@ -81,18 +133,26 @@ async function handleAnswer(isCorrect) {
         if (!answers.response) {
           spinner.success({ text: `คะแนนของคุณ ${playerName} ตอนนี้คือ ${playerScore} โอกาสหน้าเชิญใหม่นะครับ.` })
           restartProcess();
-        }
+        } else {
+          Returning = true;
+        };
       })
     } else {
       spinner.error({ text: `คำตอบยังไม่ถูกต้องนะครับ คุณ ${playerName} คะแนนสูงสุดของคุณคือ ${playerScore} โอกาสหน้าลองใหม่!` });
       restartProcess();
     }
+    return Returning;
 };
 
 
 async function startGame() {
     await welcome();
     await askName();
+    let check = true;
+    while (true) {
+      let response = await makeQuestion();
+      if (!response) break;
+    };
 }
 
 startGame();

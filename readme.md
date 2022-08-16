@@ -1,4 +1,4 @@
-# BoothCom-Math
+# BoothCom-Game=24
 แค่ โปรโจคเล็กๆ ที่เขียนด้วยความ hard code ขั้นสุด
 เขียนสำหรับ Booth Computer งานวันวิทยาศาสตร์ 18/8/2565
 
